@@ -1,0 +1,23 @@
+{
+    "name": "winter/wn-driveraws-plugin",
+    "description": "Driver that adds support for the AWS SDK (SQS queues, DynamoDB, SES mail driver) to WinterCMS",
+    "type": "winter-plugin",
+    "homepage": "https://github.com/wintercms/wn-driveraws-plugin",
+    "support": {
+        "issues": "https://github.com/wintercms/wn-driveraws-plugin/issues",
+        "discord": "https://discord.gg/D5MFSPH6Ux",
+        "source": "https://github.com/wintercms/wn-driveraws-plugin"
+    },
+    "keywords": ["ses", "sqs", "dynamodb", "wintercms", "mail", "driver"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Winter CMS Maintainers",
+            "homepage": "https://wintercms.com",
+            "role": "Maintainer"
+        }
+    ],
+    "require": {
+        "aws/aws-sdk-php": "~3.1"
+    }
+}
