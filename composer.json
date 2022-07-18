@@ -18,6 +18,7 @@
         }
     ],
     "require": {
-        "aws/aws-sdk-php": "~3.1"
+        "aws/aws-sdk-php": "^3.198.1",
+        "league/flysystem-aws-s3-v3": "^3.0"
     }
 }
