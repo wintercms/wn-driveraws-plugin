@@ -3,20 +3,23 @@
 namespace Winter\DriverAWS;
 
 use App;
-use Backend\FormWidgets\FileUpload;
-use Backend\Widgets\MediaManager;
 use Event;
 use Config;
 use Request;
 use Response;
 use Storage;
-use Winter\Storm\Validation\Validator;
+use ApplicationException;
+use Backend\Classes\WidgetBase;
+use Backend\Widgets\MediaManager;
+use Backend\FormWidgets\FileUpload;
+use Backend\FormWidgets\RichEditor;
+use Backend\FormWidgets\MarkdownEditor;
 use System\Classes\MediaLibrary;
 use System\Classes\PluginBase;
 use System\Models\MailSetting;
+use Symfony\Component\Mime\MimeTypes;
 use Illuminate\Support\Facades\Route;
-use \ApplicationException;
-use Winter\Storm\Database\Attach\File;
+use Winter\Storm\Exception\ValidationException;
 
 /**
  * DriverAWS Plugin Information File
@@ -101,7 +104,7 @@ class Plugin extends PluginBase
                     'trigger' => [
                         'action' => 'show',
                         'field' => 'send_mode',
-                        'condition' =>  'value[ses]',
+                        'condition' => 'value[ses]',
                     ],
                 ],
                 'ses_secret' => [
@@ -111,9 +114,9 @@ class Plugin extends PluginBase
                     'type' => 'sensitive',
                     'span' => 'right',
                     'trigger' => [
-                        'action' =>  'show',
-                        'field' =>  'send_mode',
-                        'condition' =>  'value[ses]',
+                        'action' => 'show',
+                        'field' => 'send_mode',
+                        'condition' => 'value[ses]',
                     ],
                 ],
                 'ses_region' => [
@@ -147,13 +150,14 @@ class Plugin extends PluginBase
 
     protected function addCustomJs(): static
     {
-        Event::listen('mediaManager.loadAssets', function (MediaManager $mediaManager) {
-            $mediaManager->addJs('/plugins/winter/driveraws/assets/js/build/stream-file-uploads.js');
-        });
+        $addJs = function (WidgetBase $widget): void {
+            $widget->addJs('/plugins/winter/driveraws/assets/js/build/stream-file-uploads.js');
+        };
 
-        Event::listen('fileUpload.loadAssets', function (FileUpload $fileUpload) {
-            $fileUpload->addJs('/plugins/winter/driveraws/assets/js/build/stream-file-uploads.js');
-        });
+        MediaManager::extend($addJs);
+        FileUpload::extend($addJs);
+        RichEditor::extend($addJs);
+        MarkdownEditor::extend($addJs);
 
         return $this;
     }
@@ -225,38 +229,48 @@ class Plugin extends PluginBase
 
     protected function addFileUploadOverride(): static
     {
-        Event::listen('fileUploadWidget.validateInput', function (array $inputs): bool {
-            return array_has($inputs, ['name', 'uuid', 'key']);
-        });
+        Event::listen('fileUploadWidget.onUpload', function (FileUpload $fileUpload): ?string {
+            if (!array_has(Request::all(), ['name', 'uuid', 'key'])) {
+                return null;
+            }
 
-        Event::listen('fileUploadWidget.makeValidate', function (FileUpload $fileUpload, array $rules): Validator {
             $disk = Storage::disk(Config::get('cms.storage.uploads.disk'));
             $path = 'tmp/' . Request::get('uuid');
             $name = Request::get('name');
 
-            $rules = ['size' => $rules[0]];
-
-            if ($fileTypes = $fileUpload->getAcceptedFileTypes()) {
-                $rules['extension'] = 'ends_with:' . $fileTypes;
-            }
+            $fileModel = $fileUpload->getRelationModel();
+            $rules = ['size' => 'max:' . $fileModel::getMaxFilesize()];
 
             if ($fileTypes = $fileUpload->getAcceptedFileTypes()) {
                 $rules['name'] = 'ends_with:' . $fileTypes;
             }
 
             if ($fileUpload->mimeTypes) {
-                $rules['mime'] = 'in:' . $fileUpload->mimeTypes;
+                $mimeType = new MimeTypes();
+                $mimes = [];
+                foreach (explode(',', $fileUpload->mimeTypes) as $item) {
+                    if (str_contains($item, '/')) {
+                        $mimes[] = $item;
+                        continue;
+                    }
+
+                    $mimes = array_merge($mimes, $mimeType->getMimeTypes($item));
+                }
+
+                $rules['mime'] = 'in:' . implode(',', $mimes);
             }
 
-            return \Validator::make([
+            $validation = \Validator::make([
                 'size' => $disk->size($path),
                 'name' => $name,
                 'mime' => $disk->mimeType($path)
             ], $rules);
-        });
 
-        Event::listen('fileUploadWidget.getFileData', function (): array {
-            return [Storage::disk(Config::get('cms.storage.uploads.disk')), 'tmp/' . Request::get('uuid')];
+            if ($validation->fails()) {
+                throw new ValidationException($validation);
+            }
+
+            return 'tmp/' . Request::get('uuid');
         });
 
         return $this;
