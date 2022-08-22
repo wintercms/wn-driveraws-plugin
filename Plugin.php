@@ -242,8 +242,7 @@ class Plugin extends PluginBase
             $path = 'tmp/' . Request::get('uuid');
             $name = Request::get('name');
 
-            $fileModel = $widget->getRelationModel();
-            $rules = ['size' => 'max:' . $fileModel::getMaxFilesize()];
+            $rules = ['size' => 'max:' . $model::getMaxFilesize()];
 
             if ($fileTypes = $widget->getAcceptedFileTypes()) {
                 $rules['name'] = 'ends_with:' . $fileTypes;
