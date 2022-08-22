@@ -174,6 +174,7 @@ class Plugin extends PluginBase
                     strtolower(pathinfo($originalName, PATHINFO_EXTENSION))
                 );
 
+                // @TODO: UploadableWidget trait should provide an uploadableGetDisk() method
                 $disk = Storage::disk(Config::get('cms.storage.media.disk'));
 
                 /*
@@ -185,6 +186,7 @@ class Plugin extends PluginBase
                 }
 
                 // Use the configured upload path unless it's null, in which case use the user-provided path
+                // @TODO: UploadableWidget trait should provide an "uploadableGetUploadPath($fileName)" method
                 $path = Config::get('cms.storage.media.folder') . (
                     !empty($widget->uploadPath)
                         ? $widget->uploadPath
