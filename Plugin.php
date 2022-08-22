@@ -19,6 +19,7 @@ use System\Classes\PluginBase;
 use System\Models\MailSetting;
 use Symfony\Component\Mime\MimeTypes;
 use Illuminate\Support\Facades\Route;
+use Winter\DriverAWS\Behaviours\SignedStorageUrlBehaviour;
 use Winter\Storm\Exception\ValidationException;
 
 /**
@@ -62,8 +63,7 @@ class Plugin extends PluginBase
             return;
         }
 
-        $this->addSignedStorageRoute()
-            ->addCustomJs()
+        $this->addExtensions()
             ->addUploadWidgetOverride()
             ->addFileUploadOverride();
     }
@@ -136,28 +136,17 @@ class Plugin extends PluginBase
         return $this;
     }
 
-    protected function addSignedStorageRoute(): static
+    protected function addExtensions(): static
     {
-        Event::listen('system.route', function () {
-            /*
-             * Signed storage url generator
-             */
-            Route::post('winter/aws/signed-storage-url', 'Winter\DriverAWS\Classes\SignedStorageUrlController@store');
-        });
-
-        return $this;
-    }
-
-    protected function addCustomJs(): static
-    {
-        $addJs = function (WidgetBase $widget): void {
+        $extension = function (WidgetBase $widget): void {
+            $widget->implement[] = SignedStorageUrlBehaviour::class;
             $widget->addJs('/plugins/winter/driveraws/assets/js/build/stream-file-uploads.js');
         };
 
-        MediaManager::extend($addJs);
-        FileUpload::extend($addJs);
-        RichEditor::extend($addJs);
-        MarkdownEditor::extend($addJs);
+        MediaManager::extend($extension);
+        FileUpload::extend($extension);
+        RichEditor::extend($extension);
+        MarkdownEditor::extend($extension);
 
         return $this;
     }
@@ -180,7 +169,7 @@ class Plugin extends PluginBase
                  * See mime type handling in the asset manager
                  */
                 if (!$disk->exists($diskPath)) {
-                    throw new ApplicationException('The file failed to uploaded');
+                    throw new ApplicationException('The file failed to upload');
                 }
 
                 // Use the configured upload path unless it's null, in which case use the user-provided path
