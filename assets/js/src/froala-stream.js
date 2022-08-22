@@ -87,7 +87,6 @@ export const froalaStream = (editor, vaporHandler) => {
 
     const _showErrorMessage = (message) => {
         showProgressBar();
-        console.log(editor);
         var $popup = editor.popups.get('file.insert');
 
         if (!$popup) {
@@ -251,7 +250,7 @@ export const froalaStream = (editor, vaporHandler) => {
                 return false;
             }
 
-            vaporHandler(file, "uploads", progress => {
+            vaporHandler(file, progress => {
                 _fileUploadProgress(progress);
             }).then(response => {
                 // The following is an adapted version of the original _uploadData

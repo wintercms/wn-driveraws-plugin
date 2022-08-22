@@ -1,3 +1,3 @@
-import SteamFileUploads from "./src/SteamFileUploads";
+import StreamFileUploads from "./src/StreamFileUploads";
 
-window.Snowboard.addPlugin("driveraws.streamFileUpload", SteamFileUploads);
+window.Snowboard.addPlugin("driveraws.streamFileUpload", StreamFileUploads);

@@ -6,7 +6,7 @@
  */
 import { froalaStream } from "./froala-stream";
 
-export default class SteamFileUploads extends Snowboard.Singleton {
+export default class StreamFileUploads extends Snowboard.Singleton {
     listens() {
         return {
             mediaManagerInitUploader: "mediaManager",
@@ -15,30 +15,35 @@ export default class SteamFileUploads extends Snowboard.Singleton {
         };
     }
 
-    vaporHandler(file, storage, progress) {
+    vaporHandler(file, progress) {
         return require('laravel-vapor').store(file, {
             expires: 5,
-            signedStorageUrl: "/winter/aws/signed-storage-url",
+            signedStorageUrl: window.location.pathname,
             data: {
-                cmsStorage: storage
+                size: file.size,
+            },
+            headers: {
+                "X-WINTER-REQUEST-HANDLER": "onSignUrl",
+                "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
+                "X-Requested-With": "XMLHttpRequest"
             },
             progress: progress
         });
     }
 
     mediaManager(mediaManager) {
-        this.dropzoneHandle(mediaManager, "media");
+        this.dropzoneHandle(mediaManager);
     }
 
     fileUpload(fileUpload) {
-        this.dropzoneHandle(fileUpload, "uploads");
+        this.dropzoneHandle(fileUpload);
     }
 
     richEditor(richEditor) {
         froalaStream(richEditor.editor, this.vaporHandler);
     }
 
-    dropzoneHandle(parent, storage) {
+    dropzoneHandle(parent) {
         const _this = this;
         parent.dropzone._uploadData = function _uploadData(files, dataBlocks) {
             const _dropzone = this;
@@ -47,8 +52,8 @@ export default class SteamFileUploads extends Snowboard.Singleton {
                     continue;
                 }
                 const file = files[i];
-                _this.vaporHandler(file, storage, progress => {
-                    _dropzone._updateFilesUploadProgress(files, progress);
+                _this.vaporHandler(file, progress => {
+                    _dropzone.emit("totaluploadprogress", progress * 100);
                 }).then(response => {
                     // The following is an adapted version of the original _uploadData
                     const xhr = new XMLHttpRequest(),
