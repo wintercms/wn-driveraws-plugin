@@ -75,6 +75,7 @@ class SignedStorageUrlBehaviour extends ExtensionBase
             'Key'           => $key,
             'ACL'           => $request->input('visibility') ?: $this->defaultVisibility(),
             'ContentType'   => $request->input('content_type') ?: 'application/octet-stream',
+            // @see https://github.com/aws/aws-sdk-php/pull/2505, may have to implement custom SignatureV4 class
             'ContentLength' => $this->getUploadSize($request->input('size')),
             'CacheControl'  => $request->input('cache_control') ?: null,
             'Expires'       => $request->input('expires') ?: null,
