@@ -14,15 +14,16 @@ use Backend\Widgets\MediaManager;
 use Backend\FormWidgets\FileUpload;
 use Backend\FormWidgets\RichEditor;
 use Backend\FormWidgets\MarkdownEditor;
-use System\Classes\MediaLibrary;
 use System\Classes\PluginBase;
 use System\Models\MailSetting;
 use Symfony\Component\Mime\MimeTypes;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Winter\DriverAWS\Behaviours\SignedStorageUrlBehaviour;
 use Winter\Storm\Exception\ValidationException;
 use Winter\Storm\Database\Attach\File as FileModel;
 use Validator;
+use SystemException;
 
 /**
  * DriverAWS Plugin Information File
@@ -61,11 +62,10 @@ class Plugin extends PluginBase
         $this->extendMailSettings();
         $this->extendMailForm();
 
-        if (Config::get('winter.driveraws::stream_s3_uploads.enabled', false)) {
-            $this->extendUploadableWidgets();
-            $this->processUploadableWidgetUploads();
-            $this->processFileUploadWidgetUploads();
-        }
+        // Add support for S3 streamed uploads
+        $this->extendUploadableWidgets();
+        $this->processUploadableWidgetUploads();
+        $this->processFileUploadWidgetUploads();
     }
 
     /**
@@ -139,11 +139,36 @@ class Plugin extends PluginBase
     }
 
     /**
+     * Check if the provided widget's disk is a valid S3 disk with streaming enabled
+     *
+     * @throws SystemException if the widget's disk cannot be identified
+     */
+    protected function diskHasStreamingEnabled(WidgetBase $widget): bool
+    {
+        if ($widget instanceof FileUpload) {
+            $disk = $widget->getRelationModel()->getDisk();
+        } elseif (method_exists($widget, 'uploadableGetDisk')) {
+            $disk = $widget->getController()->disk;
+        } else {
+            throw new SystemException('Unable to determine the disk for widget ' . get_class($widget));
+        }
+
+        return (
+            $disk->getDriver() instanceof \League\Flysystem\AwsS3v3\AwsS3Adapter
+            && $disk->getConfig()['stream_uploads'] ?? false
+        );
+    }
+
+    /**
      * Extend the uploadable Widgets to support streaming file uploads directly to S3
      */
     protected function extendUploadableWidgets()
     {
         $addDependencies = function (WidgetBase $widget): void {
+            if (!$this->widgetDiskHasStreamingEnabled($widget)) {
+                return;
+            }
+
             $widget->extendClassWith(SignedStorageUrlBehaviour::class);
             $widget->addJs('/plugins/winter/driveraws/assets/js/build/stream-file-uploads.js');
         };
@@ -160,6 +185,10 @@ class Plugin extends PluginBase
     protected function processUploadableWidgetUploads()
     {
         Event::listen('backend.widgets.uploadable.onUpload', function (WidgetBase $widget): \Illuminate\Http\Response {
+            if (!$this->widgetDiskHasStreamingEnabled($widget)) {
+                return;
+            }
+
             try {
                 /**
                  * Expects the following input data:
@@ -175,8 +204,7 @@ class Plugin extends PluginBase
                     strtolower(pathinfo($originalName, PATHINFO_EXTENSION))
                 );
 
-                // @TODO: UploadableWidget trait should provide an uploadableGetDisk() method
-                $disk = Storage::disk(Config::get('cms.storage.media.disk'));
+                $disk = $widget->uploadableGetDisk();
 
                 /*
                  * See mime type handling in the asset manager
@@ -186,15 +214,7 @@ class Plugin extends PluginBase
                     throw new ApplicationException('The file failed to upload');
                 }
 
-                // Use the configured upload path unless it's null, in which case use the user-provided path
-                // @TODO: UploadableWidget trait should provide an "uploadableGetUploadPath($fileName)" method
-                $path = Config::get('cms.storage.media.folder') . (
-                    !empty($widget->uploadPath)
-                        ? $widget->uploadPath
-                        : Request::input('path')
-                    );
-                $path = MediaLibrary::validatePath($path);
-                $targetPath = rtrim($path, '/') . '/' . $fileName;
+                $targetPath = $widget->uploadableGetUploadPath($fileName);
 
                 $disk->move($uploadedPath, $targetPath);
 
@@ -218,7 +238,7 @@ class Plugin extends PluginBase
                 $widget->fireSystemEvent('media.file.streamedUpload', [&$targetPath]);
 
                 $response = Response::make([
-                    'link' => MediaLibrary::url($targetPath),
+                    'link' => $widget->uploadableGetUploadUrl($targetPath),
                     'result' => 'success'
                 ]);
             } catch (\Exception $ex) {
@@ -235,6 +255,10 @@ class Plugin extends PluginBase
     protected function processFileUploadWidgetUploads()
     {
         Event::listen('backend.formwidgets.fileupload.onUpload', function (FileUpload $widget, FileModel $model): ?string {
+            if (!$this->diskHasStreamingEnabled($widget)) {
+                return;
+            }
+
             if (!Request::has(['name', 'uuid', 'key'])) {
                 return null;
             }
