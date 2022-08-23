@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Route;
 use Winter\DriverAWS\Behaviours\SignedStorageUrlBehaviour;
 use Winter\Storm\Exception\ValidationException;
 use Winter\Storm\Database\Attach\File as FileModel;
+use Validator;
 
 /**
  * DriverAWS Plugin Information File
@@ -234,13 +235,13 @@ class Plugin extends PluginBase
     protected function processFileUploadWidgetUploads()
     {
         Event::listen('backend.formwidgets.fileupload.onUpload', function (FileUpload $widget, FileModel $model): ?string {
-            if (!array_has(Request::all(), ['name', 'uuid', 'key'])) {
+            if (!Request::has(['name', 'uuid', 'key'])) {
                 return null;
             }
 
             $disk = $model->getDisk();
-            $path = 'tmp/' . Request::get('uuid');
-            $name = Request::get('name');
+            $path = 'tmp/' . Request::input('uuid');
+            $name = Request::input('name');
 
             $rules = ['size' => 'max:' . $model::getMaxFilesize()];
 
@@ -263,7 +264,7 @@ class Plugin extends PluginBase
                 $rules['mime'] = 'in:' . implode(',', $mimes);
             }
 
-            $validation = \Validator::make([
+            $validation = Validator::make([
                 'size' => $disk->size($path),
                 'name' => $name,
                 'mime' => $disk->mimeType($path)
@@ -273,7 +274,7 @@ class Plugin extends PluginBase
                 throw new ValidationException($validation);
             }
 
-            return 'tmp/' . Request::get('uuid');
+            return $path;
         });
     }
 }
