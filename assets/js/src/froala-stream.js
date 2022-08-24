@@ -255,7 +255,7 @@ export const froalaStream = (editor, vaporHandler) => {
             }).then(response => {
                 // The following is an adapted version of the original _uploadData
                 const xhr = editor.core.getXHR(editor.opts.fileUploadURL, editor.opts.fileUploadMethod),
-                    steamResponse = {
+                    streamResponse = {
                         uuid: response.uuid,
                         key: response.key,
                         bucket: response.bucket,
@@ -263,15 +263,14 @@ export const froalaStream = (editor, vaporHandler) => {
                         content_type: file.type,
                     },
                     formData = new FormData();
+                let key;
 
                 if (typeof editor.opts.uploadHandler !== "undefined") {
                     formData.append("_handler", editor.opts.uploadHandler);
                 }
 
-                let key;
-
-                for (key in steamResponse) {
-                    formData.append(key, steamResponse[key]);
+                for (key in streamResponse) {
+                    formData.append(key, streamResponse[key]);
                 }
 
                 xhr.onload = function () {

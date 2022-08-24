@@ -1,5 +1,5 @@
 /**
- * Steam S3 uploads provider.
+ * Stream S3 uploads provider.
  *
  * @copyright 2022 Winter.
  * @author Jack Wilkinson <me@jackwilky.com>
@@ -59,7 +59,7 @@ export default class StreamFileUploads extends Snowboard.Singleton {
                     const xhr = new XMLHttpRequest(),
                         method = _dropzone.resolveOption(_dropzone.options.method, files),
                         url = _dropzone.resolveOption(_dropzone.options.url, files),
-                        steamResponse = {
+                        streamResponse = {
                             uuid: response.uuid,
                             key: response.key,
                             bucket: response.bucket,
@@ -121,8 +121,8 @@ export default class StreamFileUploads extends Snowboard.Singleton {
                         }
                     }
 
-                    for (key in steamResponse) {
-                        formData.append(key, steamResponse[key]);
+                    for (key in streamResponse) {
+                        formData.append(key, streamResponse[key]);
                     }
 
                     _dropzone.emit("sending", file, xhr, formData);

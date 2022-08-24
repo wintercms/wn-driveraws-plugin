@@ -143,12 +143,12 @@ class Plugin extends PluginBase
      *
      * @throws SystemException if the widget's disk cannot be identified
      */
-    protected function diskHasStreamingEnabled(WidgetBase $widget): bool
+    protected function widgetDiskHasStreamingEnabled(WidgetBase $widget): bool
     {
         if ($widget instanceof FileUpload) {
             $disk = $widget->getRelationModel()->getDisk();
         } elseif (method_exists($widget, 'uploadableGetDisk')) {
-            $disk = $widget->getController()->disk;
+            $disk = $widget->uploadableGetDisk();
         } else {
             throw new SystemException('Unable to determine the disk for widget ' . get_class($widget));
         }
@@ -186,7 +186,12 @@ class Plugin extends PluginBase
     {
         Event::listen('backend.widgets.uploadable.onUpload', function (WidgetBase $widget): \Illuminate\Http\Response {
             if (!$this->widgetDiskHasStreamingEnabled($widget)) {
-                return;
+                return null;
+            }
+
+            // Check if the request came from our StreamFileUploads.js script
+            if (!Request::has(['uuid', 'key', 'bucket', 'name', 'content_type'])) {
+                return null;
             }
 
             try {
@@ -196,8 +201,8 @@ class Plugin extends PluginBase
                  * - name: The original name of the uploaded file
                  * - path: The path to put the uploaded file (relative to the media folder and only takes effect if $widget->uploadPath is not set)
                  */
-                $uploadedPath = 'tmp/' . Request::get('uuid');
-                $originalName = Request::get('name');
+                $uploadedPath = 'tmp/' . Request::input('uuid');
+                $originalName = Request::input('name');
 
                 $fileName = $widget->validateMediaFileName(
                     $originalName,
@@ -255,14 +260,20 @@ class Plugin extends PluginBase
     protected function processFileUploadWidgetUploads()
     {
         Event::listen('backend.formwidgets.fileupload.onUpload', function (FileUpload $widget, FileModel $model): ?string {
-            if (!$this->diskHasStreamingEnabled($widget)) {
-                return;
-            }
-
-            if (!Request::has(['name', 'uuid', 'key'])) {
+            if (!$this->widgetDiskHasStreamingEnabled($widget)) {
                 return null;
             }
 
+            // Check if the request came from our StreamFileUploads.js script
+            if (!Request::has(['uuid', 'key', 'bucket', 'name', 'content_type'])) {
+                return null;
+            }
+
+            /**
+             * Expects the following input data:
+             * - uuid: The unique identifier of uploaded file on S3
+             * - name: The original name of the uploaded file
+             */
             $disk = $model->getDisk();
             $path = 'tmp/' . Request::input('uuid');
             $name = Request::input('name');
