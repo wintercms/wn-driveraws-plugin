@@ -8,15 +8,15 @@ export const froalaStream = (editor, vaporHandler) => {
         MAX_SIZE_EXCEEDED = 5,
         BAD_FILE_TYPE = 6,
         NO_CORS_IE = 7,
-        error_messages = {
-            BAD_LINK: 'File cannot be loaded from the passed link.',
-            MISSING_LINK: 'No link in upload response.',
-            ERROR_DURING_UPLOAD: 'Error during file upload.',
-            BAD_RESPONSE: 'Parsing response failed.',
-            MAX_SIZE_EXCEEDED: 'File is too large.',
-            BAD_FILE_TYPE: 'File file type is invalid.',
-            NO_CORS_IE: 'Files can be uploaded only to same domain in IE 8 and IE 9.',
-        };
+        error_messages = {};
+
+    error_messages[BAD_LINK] = 'File cannot be loaded from the passed link.';
+    error_messages[MISSING_LINK] = 'No link in upload response.';
+    error_messages[ERROR_DURING_UPLOAD] = 'Error during file upload.';
+    error_messages[BAD_RESPONSE] = 'Parsing response failed.';
+    error_messages[MAX_SIZE_EXCEEDED] = 'File is too large.';
+    error_messages[BAD_FILE_TYPE] = 'File file type is invalid.';
+    error_messages[NO_CORS_IE] = 'Files can be uploaded only to same domain in IE 8 and IE 9.';
 
     const _setProgressMessage = (message, progress) => {
         var $popup = editor.popups.get('file.insert');
@@ -202,7 +202,7 @@ export const froalaStream = (editor, vaporHandler) => {
 
     const _throwError = (code, response) => {
         editor.edit.on();
-        _showErrorMessage(editor.language.translate('Something went wrong. Please try again.'));
+        _showErrorMessage(editor.language.translate(error_messages[code] || "Unrecognized error, please try again"));
         editor.events.trigger('file.error', [{code: code, message: error_messages[code]}, response]);
     };
 
@@ -265,8 +265,10 @@ export const froalaStream = (editor, vaporHandler) => {
                     formData = new FormData();
                 let key;
 
-                if (typeof editor.opts.uploadHandler !== "undefined") {
-                    formData.append("_handler", editor.opts.uploadHandler);
+                for (key in editor.opts.fileUploadParams) {
+                    if (editor.opts.fileUploadParams.hasOwnProperty(key)) {
+                        formData.append(key, editor.opts.fileUploadParams[key]);
+                    }
                 }
 
                 for (key in streamResponse) {
