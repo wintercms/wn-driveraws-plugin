@@ -24,6 +24,7 @@ use Winter\Storm\Exception\ValidationException;
 use Winter\Storm\Database\Attach\File as FileModel;
 use Validator;
 use SystemException;
+use Illuminate\Filesystem\AwsS3V3Adapter;
 
 /**
  * DriverAWS Plugin Information File
@@ -154,7 +155,7 @@ class Plugin extends PluginBase
         }
 
         return (
-            $disk->getDriver() instanceof \League\Flysystem\AwsS3v3\AwsS3Adapter
+            $disk instanceof AwsS3V3Adapter
             && $disk->getConfig()['stream_uploads'] ?? false
         );
     }
@@ -184,7 +185,7 @@ class Plugin extends PluginBase
      */
     protected function processUploadableWidgetUploads()
     {
-        Event::listen('backend.widgets.uploadable.onUpload', function (WidgetBase $widget): \Illuminate\Http\Response {
+        Event::listen('backend.widgets.uploadable.onUpload', function (WidgetBase $widget): ?\Illuminate\Http\Response {
             if (!$this->widgetDiskHasStreamingEnabled($widget)) {
                 return null;
             }
