@@ -1,0 +1,29 @@
+{
+    "name": "@wintercms/wn-driveraws-plugin",
+    "version": "1.0.0",
+    "description": "Driver that adds support for the AWS SDK (S3, SQS queues, DynamoDB, SES mail driver) to WinterCMS",
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/wintercms/wn-driveraws-plugin.git"
+    },
+    "author": {
+        "name": "Jack Wilkinson",
+        "email": "me@jackwilky.com",
+        "url": "https://wintercms.com"
+    },
+    "contributors": [
+        {
+            "name": "Winter CMS Maintainers",
+            "url": "https://wintercms.com"
+        }
+    ],
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/wintercms/wn-driveraws-plugin/issues"
+    },
+    "homepage": "https://wintercms.com/",
+    "devDependencies": {
+        "laravel-vapor": "^0.6.0"
+    }
+}
