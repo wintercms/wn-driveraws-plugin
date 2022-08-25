@@ -15,7 +15,7 @@ use Backend\FormWidgets\MarkdownEditor;
 use System\Classes\PluginBase;
 use System\Models\MailSetting;
 use Symfony\Component\Mime\MimeTypes;
-use Winter\DriverAWS\Behaviours\StreamS3Uploads;
+use Winter\DriverAWS\Behaviors\StreamS3Uploads;
 use Winter\Storm\Exception\ValidationException;
 use Winter\Storm\Database\Attach\File as FileModel;
 use Validator;
@@ -141,12 +141,16 @@ class Plugin extends PluginBase
     {
         $addBehavior = function (WidgetBase $widget): void {
             $widget->extendClassWith(StreamS3Uploads::class);
+
+            if ($widget->streamUploadsIsEnabled()) {
+                $widget->addJs('/plugins/winter/driveraws/assets/js/build/stream-file-uploads.js');
+            }
         };
 
-        MediaManager::extend($addDependencies);
-        FileUpload::extend($addDependencies);
-        RichEditor::extend($addDependencies);
-        MarkdownEditor::extend($addDependencies);
+        MediaManager::extend($addBehavior);
+        FileUpload::extend($addBehavior);
+        RichEditor::extend($addBehavior);
+        MarkdownEditor::extend($addBehavior);
     }
 
     /**
@@ -269,15 +273,20 @@ class Plugin extends PluginBase
                 $rules['mime'] = 'in:' . implode(',', $mimes);
             }
 
-            $validation = Validator::make([
+            $data = [
                 'size' => $disk->size($path),
                 'name' => $name,
                 'mime' => $disk->mimeType($path)
-            ], $rules);
+            ];
+
+            $validation = Validator::make($data, $rules);
 
             if ($validation->fails()) {
                 throw new ValidationException($validation);
             }
+
+            $model->file_name = $data['name'];
+            $model->content_type = $data['mime'];
 
             return $path;
         });

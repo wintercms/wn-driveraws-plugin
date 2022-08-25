@@ -1,6 +1,6 @@
 <?php
 
-namespace Winter\DriverAWS\Behaviours;
+namespace Winter\DriverAWS\Behaviors;
 
 use ApplicationException;
 use Aws\S3\S3Client;
@@ -10,6 +10,7 @@ use File;
 use Illuminate\Filesystem\AwsS3V3Adapter;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
+use Lang;
 use SystemException;
 use Winter\Storm\Extension\ExtensionBase;
 use Winter\Storm\Support\Str;
@@ -27,10 +28,6 @@ class StreamS3Uploads extends ExtensionBase
     public function __construct(WidgetBase $parent)
     {
         $this->parent = $parent;
-
-        if ($this->parent->streamUploadsIsEnabled()) {
-            $this->parent->addJs('/plugins/winter/driveraws/assets/js/build/stream-file-uploads.js');
-        }
     }
 
     /**
@@ -69,16 +66,17 @@ class StreamS3Uploads extends ExtensionBase
          * The following request parameters are supported by Vapor Core but not us:
          * - bucket: Sets the bucket being uploaded to
          * - visibility: Sets the ACL sent to the putObject command
-         * - content_type: Sets the ContentType sent to the putObject command and the
-         * Content-Type value of the headers property in the response from this method
          * - cache_control: Sets the CacheControl sent to the putObject command
          * - expires: Sets the Expires sent to the putObject command
          *
          * The following request parameters are supported by us:
          * - size: The size of the content being uploaded, used when signing the URL
          * for data integrity.
+         * - content_type: Sets the ContentType sent to the putObject command and the
+         * Content-Type value of the headers property in the response from this method
          */
         $size = (int) request()->input('size');
+        $contentType = request()->input('content_type', 'application/octet-stream');
 
         /**
          * The following options are required to be present in the disk config:
@@ -111,12 +109,14 @@ class StreamS3Uploads extends ExtensionBase
          * The solution is to use a custom implementation of the SignatureV4 class
          * but that requires https://github.com/aws/aws-sdk-php/pull/2505 to be
          * merged first.
+         *
+         * @TODO: Also validate the ContentType and provide it as a signed header
          */
         if ($size > $maxUploadSize) {
-            throw new ApplicationException(sprintf(
-                'The filesize exceeds the maximum allowed upload size (%s)',
-                File::sizeToString($maxUploadSize),
-            );
+            throw new ApplicationException(Lang::get(
+                'winter.driveraws::lang.stream_uploads.max_size_exceeded',
+                ['size' => File::sizeToString($maxUploadSize)],
+            ));
         }
 
         // Generate the S3 signed request to process the upload
@@ -125,7 +125,7 @@ class StreamS3Uploads extends ExtensionBase
                 'Bucket' => $bucket,
                 'Key' => $key,
                 'ACL' => 'private',
-                'ContentType' => 'application/octet-stream',
+                'ContentType' => $contentType,
                 'ContentLength' => $size,
             ]),
             sprintf('+%s minutes', $expiresAfter)
@@ -138,8 +138,8 @@ class StreamS3Uploads extends ExtensionBase
             'key' => $key,
             'url' => (string) $signedRequest->getUri(),
             'headers' => array_merge($signedRequest->getHeaders(), [
-                'Content-Type' => 'application/octet-stream',
-            ],
+                'Content-Type' => $contentType,
+            ]),
         ], 201);
     }
 
