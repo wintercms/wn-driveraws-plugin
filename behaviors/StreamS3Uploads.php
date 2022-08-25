@@ -17,6 +17,8 @@ use Winter\Storm\Support\Str;
 
 /**
  * StreamS3Uploads Widget Behavior
+ *
+ * @author Jack Wilkinson, Luke Towers
  */
 class StreamS3Uploads extends ExtensionBase
 {
