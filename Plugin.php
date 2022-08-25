@@ -4,10 +4,8 @@ namespace Winter\DriverAWS;
 
 use App;
 use Event;
-use Config;
 use Request;
 use Response;
-use Storage;
 use ApplicationException;
 use Backend\Classes\WidgetBase;
 use Backend\Widgets\MediaManager;
@@ -17,14 +15,11 @@ use Backend\FormWidgets\MarkdownEditor;
 use System\Classes\PluginBase;
 use System\Models\MailSetting;
 use Symfony\Component\Mime\MimeTypes;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Filesystem\FilesystemAdapter;
-use Winter\DriverAWS\Behaviours\SignedStorageUrlBehaviour;
+use Winter\DriverAWS\Behaviours\StreamS3Uploads;
 use Winter\Storm\Exception\ValidationException;
 use Winter\Storm\Database\Attach\File as FileModel;
 use Validator;
 use SystemException;
-use Illuminate\Filesystem\AwsS3V3Adapter;
 
 /**
  * DriverAWS Plugin Information File
@@ -140,38 +135,12 @@ class Plugin extends PluginBase
     }
 
     /**
-     * Check if the provided widget's disk is a valid S3 disk with streaming enabled
-     *
-     * @throws SystemException if the widget's disk cannot be identified
-     */
-    protected function widgetDiskHasStreamingEnabled(WidgetBase $widget): bool
-    {
-        if ($widget instanceof FileUpload) {
-            $disk = $widget->getRelationModel()->getDisk();
-        } elseif (method_exists($widget, 'uploadableGetDisk')) {
-            $disk = $widget->uploadableGetDisk();
-        } else {
-            throw new SystemException('Unable to determine the disk for widget ' . get_class($widget));
-        }
-
-        return (
-            $disk instanceof AwsS3V3Adapter
-            && $disk->getConfig()['stream_uploads'] ?? false
-        );
-    }
-
-    /**
      * Extend the uploadable Widgets to support streaming file uploads directly to S3
      */
     protected function extendUploadableWidgets()
     {
-        $addDependencies = function (WidgetBase $widget): void {
-            if (!$this->widgetDiskHasStreamingEnabled($widget)) {
-                return;
-            }
-
-            $widget->extendClassWith(SignedStorageUrlBehaviour::class);
-            $widget->addJs('/plugins/winter/driveraws/assets/js/build/stream-file-uploads.js');
+        $addBehavior = function (WidgetBase $widget): void {
+            $widget->extendClassWith(StreamS3Uploads::class);
         };
 
         MediaManager::extend($addDependencies);
@@ -186,7 +155,7 @@ class Plugin extends PluginBase
     protected function processUploadableWidgetUploads()
     {
         Event::listen('backend.widgets.uploadable.onUpload', function (WidgetBase $widget): ?\Illuminate\Http\Response {
-            if (!$this->widgetDiskHasStreamingEnabled($widget)) {
+            if (!$widget->streamUploadsIsEnabled()) {
                 return null;
             }
 
@@ -247,7 +216,7 @@ class Plugin extends PluginBase
                     'link' => $widget->uploadableGetUploadUrl($targetPath),
                     'result' => 'success'
                 ]);
-            } catch (\Exception $ex) {
+            } catch (\Throwable $ex) {
                 throw new ApplicationException($ex->getMessage());
             }
 
@@ -261,7 +230,7 @@ class Plugin extends PluginBase
     protected function processFileUploadWidgetUploads()
     {
         Event::listen('backend.formwidgets.fileupload.onUpload', function (FileUpload $widget, FileModel $model): ?string {
-            if (!$this->widgetDiskHasStreamingEnabled($widget)) {
+            if (!$widget->streamUploadsIsEnabled()) {
                 return null;
             }
 
