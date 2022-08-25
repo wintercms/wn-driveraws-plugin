@@ -9,9 +9,9 @@ import { froalaStream } from "./froala-stream";
 export default class StreamFileUploads extends Snowboard.Singleton {
     listens() {
         return {
-            mediaManagerInitUploader: "mediaManager",
-            fileUploadInitUploader: "fileUpload",
-            richEditorInit: "richEditor"
+            'widgets.mediamanager.initUploader': "extendDropzone",
+            'formwidgets.fileupload.initUploader': "extendDropzone",
+            'formwidgets.richeditor.init': "extendFroala"
         };
     }
 
@@ -31,19 +31,11 @@ export default class StreamFileUploads extends Snowboard.Singleton {
         });
     }
 
-    mediaManager(mediaManager) {
-        this.dropzoneHandle(mediaManager);
+    extendFroala(parent) {
+        froalaStream(parent.editor, this.vaporHandler);
     }
 
-    fileUpload(fileUpload) {
-        this.dropzoneHandle(fileUpload);
-    }
-
-    richEditor(richEditor) {
-        froalaStream(richEditor.editor, this.vaporHandler);
-    }
-
-    dropzoneHandle(parent) {
+    extendDropzone(parent) {
         const _this = this;
         parent.dropzone._uploadData = function _uploadData(files, dataBlocks) {
             const _dropzone = this;
