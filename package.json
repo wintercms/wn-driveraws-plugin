@@ -1,7 +1,7 @@
 {
     "name": "@wintercms/wn-driveraws-plugin",
     "version": "1.0.0",
-    "description": "Driver that adds support for the AWS SDK (SQS queues, DynamoDB, SES mail driver) to WinterCMS.",
+    "description": "Driver that adds support for the AWS SDK (S3, SQS queues, DynamoDB, SES mail driver) to WinterCMS",
     "private": true,
     "repository": {
         "type": "git",
