@@ -23,6 +23,8 @@ By default you can setup SES as a mail transport by configuring the `mail.mailer
 <a name="streamed-uploads"></a>
 ### Streamed File Uploads to S3
 
+>**NOTE:** This feature requires Winter v1.2.1 or greater.
+
 When dealing with large files or serverless application infrastructure it can be extremely useful to support client-side direct uploads to S3 (i.e. file uploads are streamed to S3 directly from the browser without going through the application server). This plugin provides the ability to do this by automatically hooking into the FileUpload, MediaManager, RichEditor, & MarkdownEditor Widgets and providing the ability to upload directly to S3 when their respective disk configurations are set to `s3` and have the `stream_uploads` option set to `true`.
 
 The following additional configuration options are available to be set on `s3` disk configurations:
