@@ -14,6 +14,7 @@ return [
     'ses_region_comment' => 'Enter your SES region (e.g. us-east-1)',
 
     'stream_uploads' => [
+        'upload_failed' => 'The file failed to upload',
         'max_size_exceeded' => 'The filesize exceeds the maximum allowed upload size (:size)',
     ],
 ];

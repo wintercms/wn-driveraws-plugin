@@ -3,23 +3,24 @@
 namespace Winter\DriverAWS;
 
 use App;
-use Event;
-use Request;
-use Response;
 use ApplicationException;
 use Backend\Classes\WidgetBase;
-use Backend\Widgets\MediaManager;
 use Backend\FormWidgets\FileUpload;
-use Backend\FormWidgets\RichEditor;
 use Backend\FormWidgets\MarkdownEditor;
+use Backend\FormWidgets\RichEditor;
+use Backend\Widgets\MediaManager;
+use Event;
+use Lang;
+use Request;
+use Response;
+use Symfony\Component\Mime\MimeTypes;
 use System\Classes\PluginBase;
 use System\Models\MailSetting;
-use Symfony\Component\Mime\MimeTypes;
-use Winter\DriverAWS\Behaviors\StreamS3Uploads;
-use Winter\Storm\Exception\ValidationException;
-use Winter\Storm\Database\Attach\File as FileModel;
-use Validator;
 use SystemException;
+use Validator;
+use Winter\DriverAWS\Behaviors\StreamS3Uploads;
+use Winter\Storm\Database\Attach\File as FileModel;
+use Winter\Storm\Exception\ValidationException;
 
 /**
  * DriverAWS Plugin Information File
@@ -185,12 +186,9 @@ class Plugin extends PluginBase
 
                 $disk = $widget->uploadableGetDisk();
 
-                /*
-                 * See mime type handling in the asset manager
-                 */
+                // Check if the upload succeeded
                 if (!$disk->exists($uploadedPath)) {
-                    // @TODO: Add translation support here
-                    throw new ApplicationException('The file failed to upload');
+                    throw new ApplicationException(Lang::get('winter.driveraws::lang.stream_uploads.upload_failed'));
                 }
 
                 $targetPath = $widget->uploadableGetUploadPath($fileName);
@@ -251,6 +249,11 @@ class Plugin extends PluginBase
             $disk = $model->getDisk();
             $path = 'tmp/' . Request::input('uuid');
             $name = Request::input('name');
+
+            // Check if the upload succeeded
+            if (!$disk->exists($path)) {
+                throw new ApplicationException(Lang::get('winter.driveraws::lang.stream_uploads.upload_failed'));
+            }
 
             $rules = ['size' => 'max:' . $model::getMaxFilesize()];
 
