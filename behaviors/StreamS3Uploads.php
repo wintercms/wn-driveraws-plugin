@@ -43,7 +43,8 @@ class StreamS3Uploads extends ExtensionBase
 
         return (
             $disk instanceof AwsS3V3Adapter
-            && $disk->getConfig()['stream_uploads'] ?? false
+            && isset($disk->getConfig()['stream_uploads'])
+            && $disk->getConfig()['stream_uploads']
         );
     }
 
