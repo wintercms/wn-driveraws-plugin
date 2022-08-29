@@ -100,7 +100,10 @@ class StreamS3Uploads extends ExtensionBase
         $diskConfig = $this->parent->streamUploadsGetDisk()->getConfig();
         $client = $this->parent->streamUploadsGetClient($diskConfig);
         $bucket = $diskConfig['bucket'];
-        $key = rtrim($diskConfig['root'] ?? '', '/') . '/tmp/' . $uuid;
+        $key = 'tmp/' . $uuid;
+        if (!empty($diskConfig['root'])) {
+            $key = rtrim($diskConfig['root'] ?? '', '/') . '/' . $key;
+        }
         $expiresAfter = $diskConfig['stream_uploads_ttl'] ?? 5;
         $maxUploadSize = $diskConfig['stream_uploads_max_size'] ?? (128 * 1024 * 1024);
 
