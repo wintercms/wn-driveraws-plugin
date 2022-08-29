@@ -49,3 +49,45 @@ The following additional configuration options are available to be set on `s3` d
     'stream_uploads_max_size' => 128 * 1024 * 1024,
 ],
 ```
+
+>**NOTE:** In order to use the streamed uploads functionality, your AWS credential require access to the following actions on the desired S3 bucket:
+
+- `s3:PutObject`
+- `s3:PutObjectAcl`
+- `s3:GetObject`
+- `s3:GetObjectAcl`
+- `s3:DeleteObject`
+
+See below for an example IAM policy that shoud work:
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket",
+                "s3:ListAllMyBuckets",
+                "s3:GetBucketLocation"
+            ],
+            "Resource": [
+                "arn:aws:s3:::my-bucket-name-here"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:PutObjectAcl",
+                "s3:GetObject",
+                "s3:GetObjectAcl",
+                "s3:DeleteObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::my-bucket-name-here/*"
+            ]
+        }
+    ]
+}
+```
