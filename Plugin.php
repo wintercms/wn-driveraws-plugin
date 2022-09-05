@@ -32,8 +32,8 @@ class Plugin extends PluginBase
     public function pluginDetails()
     {
         return [
-            'name'        => 'winter.driveraws::lang.plugin_name',
-            'description' => 'winter.driveraws::lang.plugin_description',
+            'name'        => 'winter.driveraws::lang.plugin.name',
+            'description' => 'winter.driveraws::lang.plugin.description',
             'homepage'    => 'https://github.com/wintercms/wn-driveraws-plugin',
             'author'      => 'Winter CMS',
             'icon'        => 'icon-leaf',
