@@ -113,11 +113,9 @@ class StreamS3Uploads extends ExtensionBase
          *
          * @NOTE: It is still technically possible for the client to lie about
          * the size of the file to be uploaded while generating the signed URL.
-         * The solution is to use a custom implementation of the SignatureV4 class
-         * but that requires https://github.com/aws/aws-sdk-php/pull/2505 to be
-         * merged first.
-         *
-         * @TODO: Also validate the ContentType and provide it as a signed header
+         * Because of this we will use the WinterS3SignatureV4 signature provider
+         * to ensure that the Content-Length header is signed using the value
+         * provided which we can validate here.
          */
         if ($size > $maxUploadSize) {
             throw new ApplicationException(Lang::get(
