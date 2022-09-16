@@ -12,6 +12,7 @@ use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
 use Lang;
 use SystemException;
+use Winter\DriverAWS\Classes\WinterS3SignatureV4;
 use Winter\Storm\Extension\ExtensionBase;
 use Winter\Storm\Support\Str;
 
@@ -176,6 +177,7 @@ class StreamS3Uploads extends ExtensionBase
             'region' => $config['region'],
             'version' => 'latest',
             'signature_version' => 'v4',
+            'signature_provider' => fn ($version, $service, $region) => new WinterS3SignatureV4($service, $region),
             'use_path_style_endpoint' => $config['use_path_style_endpoint'] ?? false,
             'credentials' => [
                 'key' => $config['key'],
