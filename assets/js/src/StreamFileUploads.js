@@ -125,6 +125,17 @@ export default class StreamFileUploads extends Snowboard.Singleton {
 
                     _dropzone._addFormElementData(formData);
                     _dropzone.submitRequest(xhr, formData, files);
+                }).catch((error) => {
+                    file.xhr = {
+                        status: (error.request.status || 500)
+                    };
+                    _dropzone._errorProcessing(
+                        [file],
+                        error.message === "Network Error"
+                            ? "Server rejected the file because it was too large."
+                            : error?.response?.data || "Unexpected error",
+                        error.request
+                    );
                 });
             }
         }
