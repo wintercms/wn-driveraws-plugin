@@ -293,6 +293,13 @@ export const froalaStream = (editor, vaporHandler) => {
                     })
                 }
                 xhr.send(formData);
+            }).catch((error) => {
+                _throwError(
+                    ERROR_DURING_UPLOAD,
+                    error.message === "Network Error"
+                        ? "Server rejected the file because it was too large."
+                        : error?.response?.data || "Unexpected error"
+                );
             });
         };
     };

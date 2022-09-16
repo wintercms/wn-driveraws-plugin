@@ -12,6 +12,7 @@ use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\JsonResponse;
 use Lang;
 use SystemException;
+use Winter\DriverAWS\Classes\WinterS3SignatureV4;
 use Winter\Storm\Extension\ExtensionBase;
 use Winter\Storm\Support\Str;
 
@@ -112,11 +113,9 @@ class StreamS3Uploads extends ExtensionBase
          *
          * @NOTE: It is still technically possible for the client to lie about
          * the size of the file to be uploaded while generating the signed URL.
-         * The solution is to use a custom implementation of the SignatureV4 class
-         * but that requires https://github.com/aws/aws-sdk-php/pull/2505 to be
-         * merged first.
-         *
-         * @TODO: Also validate the ContentType and provide it as a signed header
+         * Because of this we will use the WinterS3SignatureV4 signature provider
+         * to ensure that the Content-Length header is signed using the value
+         * provided which we can validate here.
          */
         if ($size > $maxUploadSize) {
             throw new ApplicationException(Lang::get(
@@ -176,6 +175,7 @@ class StreamS3Uploads extends ExtensionBase
             'region' => $config['region'],
             'version' => 'latest',
             'signature_version' => 'v4',
+            'signature_provider' => fn ($version, $service, $region) => new WinterS3SignatureV4($service, $region),
             'use_path_style_endpoint' => $config['use_path_style_endpoint'] ?? false,
             'credentials' => [
                 'key' => $config['key'],
