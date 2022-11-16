@@ -15,7 +15,7 @@ export default class StreamFileUploads extends Snowboard.Singleton {
         };
     }
 
-    vaporHandler(file, progress) {
+    vaporHandler(file, progress, handler = 'onSignUrl') {
         return require('laravel-vapor').store(file, {
             expires: 5,
             signedStorageUrl: window.location.pathname,
@@ -23,7 +23,7 @@ export default class StreamFileUploads extends Snowboard.Singleton {
                 size: file.size,
             },
             headers: {
-                "X-WINTER-REQUEST-HANDLER": "onSignUrl",
+                "X-WINTER-REQUEST-HANDLER": handler,
                 "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
                 "X-Requested-With": "XMLHttpRequest"
             },
@@ -39,14 +39,29 @@ export default class StreamFileUploads extends Snowboard.Singleton {
         const _this = this;
         parent.dropzone._uploadData = function _uploadData(files, dataBlocks) {
             const _dropzone = this;
+
+            // Detect the target widget for the handler
+            let signingHandler = 'onSignUrl';
+            let uploadHandler = parent.options.uploadHandler;
+            if (typeof uploadHandler === 'string') {
+                const prefix = uploadHandler.substr(0, uploadHandler.indexOf('::'));
+                if (typeof prefix === 'string' && prefix.trim().length !== 0) {
+                    signingHandler = prefix + '::' + signingHandler;
+                }
+            }
+
             for (let i in files) {
                 if (!files.hasOwnProperty(i)) {
                     continue;
                 }
                 const file = files[i];
-                _this.vaporHandler(file, progress => {
-                    _dropzone.emit("totaluploadprogress", progress * 100);
-                }).then(response => {
+                _this.vaporHandler(
+                    file,
+                    progress => {
+                        _dropzone.emit("totaluploadprogress", progress * 100);
+                    },
+                    signingHandler
+                ).then(response => {
                     // The following is an adapted version of the original _uploadData
                     const xhr = new XMLHttpRequest(),
                         method = _dropzone.resolveOption(_dropzone.options.method, files),

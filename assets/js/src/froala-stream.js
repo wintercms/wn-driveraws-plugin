@@ -250,9 +250,23 @@ export const froalaStream = (editor, vaporHandler) => {
                 return false;
             }
 
-            vaporHandler(file, progress => {
-                _fileUploadProgress(progress);
-            }).then(response => {
+            // Detect the target widget for the handler
+            let signingHandler = 'onSignUrl';
+            let uploadHandler = editor.opts.fileUploadParams._handler;
+            if (typeof uploadHandler === 'string') {
+                const prefix = uploadHandler.substr(0, uploadHandler.indexOf('::'));
+                if (typeof prefix === 'string' && prefix.trim().length !== 0) {
+                    signingHandler = prefix + '::' + signingHandler;
+                }
+            }
+
+            vaporHandler(
+                file,
+                progress => {
+                    _fileUploadProgress(progress);
+                },
+                signingHandler
+            ).then(response => {
                 // The following is an adapted version of the original _uploadData
                 const xhr = editor.core.getXHR(editor.opts.fileUploadURL, editor.opts.fileUploadMethod),
                     streamResponse = {
