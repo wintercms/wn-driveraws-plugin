@@ -151,7 +151,6 @@ class Plugin extends PluginBase
         MediaManager::extend($addBehavior);
         FileUpload::extend($addBehavior);
         RichEditor::extend($addBehavior);
-        MarkdownEditor::extend($addBehavior);
     }
 
     /**
