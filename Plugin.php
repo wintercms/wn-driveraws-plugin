@@ -48,8 +48,8 @@ class Plugin extends PluginBase
                 $config = App::make('config');
                 $config->set('mail.mailers.ses.transport', self::MODE_SES);
                 $config->set('services.ses.key', $settings->ses_key);
-                $config->set('services.ses.secret', $settings->ses_secret);
                 $config->set('services.ses.region', $settings->ses_region);
+                $config->set('services.ses.secret', $settings->ses_secret);
             }
         });
     }
@@ -73,9 +73,12 @@ class Plugin extends PluginBase
         MailSetting::extend(function ($model) {
             $model->bindEvent('model.beforeValidate', function () use ($model) {
                 $model->rules['ses_key'] = 'required_if:send_mode,' . self::MODE_SES;
-                $model->rules['ses_secret'] = 'required_if:send_mode,' . self::MODE_SES;
                 $model->rules['ses_region'] = 'required_if:send_mode,' . self::MODE_SES;
+                $model->rules['ses_secret'] = 'required_if:send_mode,' . self::MODE_SES;
             });
+            $model->ses_key = config('services.ses.key');
+            $model->ses_region = config('services.ses.region');
+            $model->ses_secret = config('services.ses.secret');
         });
     }
 
