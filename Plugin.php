@@ -76,9 +76,9 @@ class Plugin extends PluginBase
                 $model->rules['ses_region'] = 'required_if:send_mode,' . self::MODE_SES;
                 $model->rules['ses_secret'] = 'required_if:send_mode,' . self::MODE_SES;
             });
-            $model->ses_key = config('services.ses.key');
-            $model->ses_region = config('services.ses.region');
-            $model->ses_secret = config('services.ses.secret');
+            $model->ses_key = config('services.ses.key', env('AWS_ACCESS_KEY_ID'));
+            $model->ses_region = config('services.ses.region', env('AWS_DEFAULT_REGION', 'us-east-1'));
+            $model->ses_secret = config('services.ses.secret', env('AWS_SECRET_ACCESS_KEY'));
         });
     }
 
